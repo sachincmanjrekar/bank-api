@@ -29,3 +29,11 @@ jobs:
 
       - name: Run tests
         run: python -m pytest -v
+
+      - name: Check migrations
+        env:
+          DATABASE_URL: sqlite:///./ci.db  # fresh, empty database just for this check
+        run: |
+          alembic upgrade head    # every migration applies cleanly from scratch
+          alembic check           # fails if models.py changed without a new migration
+          alembic downgrade base  # and every migration can be undone
