@@ -49,6 +49,13 @@ class AmountIn(BaseModel):
     description: str | None = Field(default=None, max_length=255)
 
 
+class TransferIn(AmountIn):
+    """What the client sends to transfer money. Inherits amount + description."""
+
+    from_account_id: int  # must be one of your own accounts
+    to_account_number: str = Field(pattern=r"^\d{12}$")  # anyone's account, like a real payee
+
+
 class TransactionOut(BaseModel):
     """One line of an account's statement."""
 
