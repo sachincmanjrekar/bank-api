@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
@@ -25,3 +26,14 @@ class UserOut(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+
+class AccountOut(BaseModel):
+    """What we send back about a bank account."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    account_number: str
+    balance: Decimal  # sent as a string like "0.00" in JSON, so no float rounding
+    created_at: datetime
