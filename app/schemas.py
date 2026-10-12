@@ -3,6 +3,8 @@ from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
+from app.models import TransactionType
+
 
 class UserCreate(BaseModel):
     """What the client sends to register."""
@@ -36,4 +38,26 @@ class AccountOut(BaseModel):
     id: int
     account_number: str
     balance: Decimal  # sent as a string like "0.00" in JSON, so no float rounding
+    created_at: datetime
+
+
+class AmountIn(BaseModel):
+    """What the client sends to deposit or withdraw."""
+
+    # gt=0: no zero or negative amounts. decimal_places=2: no fractions of a paisa/cent.
+    amount: Decimal = Field(gt=0, max_digits=12, decimal_places=2)
+    description: str | None = Field(default=None, max_length=255)
+
+
+class TransactionOut(BaseModel):
+    """One line of an account's statement."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    account_id: int
+    type: TransactionType
+    amount: Decimal
+    balance_after: Decimal
+    description: str | None
     created_at: datetime
