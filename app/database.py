@@ -16,7 +16,13 @@ connect_args = {"check_same_thread": False} if settings.database_url.startswith(
 
 # pool_pre_ping: test a pooled connection before using it, and replace it if the
 # server closed it (Aurora DSQL closes connections after 1 hour).
-engine = create_engine(settings.database_url, connect_args=connect_args, pool_pre_ping=True)
+engine_options = {"connect_args": connect_args, "pool_pre_ping": True}
+if settings.database_iam_auth:
+    # On first connect SQLAlchemy looks for PostgreSQL's hstore extension inside a
+    # SAVEPOINT; Aurora DSQL supports neither, so skip that lookup.
+    engine_options["use_native_hstore"] = False
+
+engine = create_engine(settings.database_url, **engine_options)
 SessionLocal = sessionmaker(bind=engine, autoflush=False)
 
 if settings.database_iam_auth:
