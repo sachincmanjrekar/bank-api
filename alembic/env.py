@@ -66,10 +66,15 @@ def run_migrations_online() -> None:
     # Reuse the app's engine so migrations connect exactly like the app does,
     # including the IAM auth token for Aurora DSQL.
     with engine.connect() as connection:
+        if settings.database_iam_auth:
+            # Aurora DSQL allows only one DDL statement per transaction, so
+            # autocommit each statement instead of wrapping the migration in one.
+            connection = connection.execution_options(isolation_level="AUTOCOMMIT")
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
             render_as_batch=render_as_batch,
+            transactional_ddl=not settings.database_iam_auth,
         )
 
         with context.begin_transaction():
