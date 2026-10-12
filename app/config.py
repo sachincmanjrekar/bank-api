@@ -13,5 +13,10 @@ class Settings(BaseSettings):
     app_name: str = "Bank API"
     database_url: str = "sqlite:///./bank.db"
 
+    # Used to sign JWT tokens. This default is for local development only;
+    # on AWS it is replaced by a long random SECRET_KEY environment variable.
+    secret_key: str = "dev-only-secret-key-change-me-in-production-0123456789"
+    access_token_expire_minutes: int = 30
+
 
 settings = Settings()

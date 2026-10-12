@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from app import models  # noqa: F401  (imported so its tables are registered on Base)
 from app.config import settings
 from app.database import Base, engine
-from app.routers import health
+from app.routers import auth, health
 
 
 @asynccontextmanager
@@ -24,3 +24,4 @@ app = FastAPI(
 )
 
 app.include_router(health.router)
+app.include_router(auth.router)
