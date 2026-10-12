@@ -68,6 +68,9 @@ def downgrade() -> None:
         batch_op.drop_index(batch_op.f('ix_transactions_account_id'))
 
     op.drop_table('transactions')
+    # PostgreSQL keeps the enum as a separate type; drop it too, or a later
+    # upgrade fails with "type transactiontype already exists". No-op on SQLite.
+    sa.Enum(name='transactiontype').drop(op.get_bind(), checkfirst=True)
     with op.batch_alter_table('accounts', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('ix_accounts_account_number'))
 

@@ -1,0 +1,36 @@
+# Local development: the API and a PostgreSQL database, started together with
+#   docker compose up --build
+# This mirrors the AWS setup (container + managed PostgreSQL) on your own PC.
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: bank
+      POSTGRES_PASSWORD: bank-dev-password  # local only; on AWS the password lives in Secrets Manager
+      POSTGRES_DB: bank
+    volumes:
+      - pgdata:/var/lib/postgresql/data  # database files survive container restarts
+    healthcheck:
+      # "Is Postgres ready to accept connections?" The api waits for this to pass.
+      test: ["CMD-SHELL", "pg_isready -U bank -d bank"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+    # No "ports:" on purpose: only the api can reach the database, on Compose's
+    # private network. Same idea as RDS in a private subnet on AWS.
+
+  api:
+    build: .
+    environment:
+      # "db" is the service name above; Compose's network turns it into the hostname.
+      DATABASE_URL: postgresql+psycopg://bank:bank-dev-password@db:5432/bank
+      SECRET_KEY: local-compose-secret-key-change-me-0123456789abcdef
+    ports:
+      - "${API_PORT:-8080}:8000"  # host port 8080 unless API_PORT is set
+    depends_on:
+      db:
+        condition: service_healthy  # don't start (and run migrations) until Postgres is ready
+
+volumes:
+  pgdata:
