@@ -12,6 +12,9 @@ class Settings(BaseSettings):
 
     app_name: str = "Bank API"
     database_url: str = "sqlite:///./bank.db"
+    # True for Aurora DSQL: instead of a password, each new connection gets a
+    # short-lived IAM auth token generated from the caller's AWS credentials.
+    database_iam_auth: bool = False
 
     # Used to sign JWT tokens. This default is for local development only;
     # on AWS it is replaced by a long random SECRET_KEY environment variable.

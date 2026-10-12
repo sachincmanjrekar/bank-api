@@ -4,7 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from app.database import get_db
+from app.database import commit_with_retry, get_db
 from app.models import Account, Transaction, TransactionType, User
 from app.schemas import AccountOut, AmountIn, TransactionOut
 from app.security import CurrentUser
@@ -80,17 +80,21 @@ def list_transactions(
     "/{account_id}/deposit", response_model=TransactionOut, status_code=status.HTTP_201_CREATED
 )
 def deposit(account_id: int, body: AmountIn, current_user: CurrentUser, db: DbSession):
-    account = get_owned_account(db, account_id, current_user, lock=True)
-    account.balance += body.amount
-    txn = Transaction(
-        account_id=account.id,
-        type=TransactionType.DEPOSIT,
-        amount=body.amount,
-        balance_after=account.balance,
-        description=body.description,
-    )
-    db.add(txn)
-    db.commit()  # balance change and transaction row are saved together, or not at all
+    def work():
+        account = get_owned_account(db, account_id, current_user, lock=True)
+        account.balance += body.amount
+        txn = Transaction(
+            account_id=account.id,
+            type=TransactionType.DEPOSIT,
+            amount=body.amount,
+            balance_after=account.balance,
+            description=body.description,
+        )
+        db.add(txn)
+        return txn
+
+    # Balance change and transaction row are committed together, or not at all.
+    txn = commit_with_retry(db, work)
     db.refresh(txn)
     return txn
 
@@ -99,18 +103,21 @@ def deposit(account_id: int, body: AmountIn, current_user: CurrentUser, db: DbSe
     "/{account_id}/withdraw", response_model=TransactionOut, status_code=status.HTTP_201_CREATED
 )
 def withdraw(account_id: int, body: AmountIn, current_user: CurrentUser, db: DbSession):
-    account = get_owned_account(db, account_id, current_user, lock=True)
-    if account.balance < body.amount:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Insufficient funds")
-    account.balance -= body.amount
-    txn = Transaction(
-        account_id=account.id,
-        type=TransactionType.WITHDRAWAL,
-        amount=body.amount,
-        balance_after=account.balance,
-        description=body.description,
-    )
-    db.add(txn)
-    db.commit()
+    def work():
+        account = get_owned_account(db, account_id, current_user, lock=True)
+        if account.balance < body.amount:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Insufficient funds")
+        account.balance -= body.amount
+        txn = Transaction(
+            account_id=account.id,
+            type=TransactionType.WITHDRAWAL,
+            amount=body.amount,
+            balance_after=account.balance,
+            description=body.description,
+        )
+        db.add(txn)
+        return txn
+
+    txn = commit_with_retry(db, work)
     db.refresh(txn)
     return txn

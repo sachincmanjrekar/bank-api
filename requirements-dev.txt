@@ -1,3 +1,6 @@
 -r requirements.txt
 pytest==9.1.1
 ruff==0.16.9
+# Used to connect to Aurora DSQL from your PC (e.g. alembic upgrade); on Lambda
+# boto3 comes with the Python runtime, so it isn't in requirements.txt.
+boto3==1.43.111

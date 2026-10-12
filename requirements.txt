@@ -5,3 +5,4 @@ pwdlib[argon2]==0.3.1
 pyjwt==2.15.1
 alembic==1.19.1
 psycopg[binary]==3.3.6
+mangum==0.22.0
