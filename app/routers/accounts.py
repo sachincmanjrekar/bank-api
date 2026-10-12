@@ -1,7 +1,7 @@
 import secrets
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -55,6 +55,25 @@ def list_accounts(current_user: CurrentUser, db: DbSession):
 @router.get("/{account_id}", response_model=AccountOut)
 def get_account(account_id: int, current_user: CurrentUser, db: DbSession):
     return get_owned_account(db, account_id, current_user)
+
+
+@router.get("/{account_id}/transactions", response_model=list[TransactionOut])
+def list_transactions(
+    account_id: int,
+    current_user: CurrentUser,
+    db: DbSession,
+    type: TransactionType | None = None,  # optional filter, e.g. ?type=deposit
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,  # page size, capped so nobody can ask for 1 million rows
+    offset: Annotated[int, Query(ge=0)] = 0,  # how many rows to skip (page 2 = offset 20)
+):
+    """The account statement, newest first."""
+    get_owned_account(db, account_id, current_user)  # only for the ownership check / 404
+
+    query = db.query(Transaction).filter(Transaction.account_id == account_id)
+    if type is not None:
+        query = query.filter(Transaction.type == type)
+    # Order by id, not created_at: rows in the same second would tie, and the order must be stable for paging.
+    return query.order_by(Transaction.id.desc()).offset(offset).limit(limit).all()
 
 
 @router.post(
