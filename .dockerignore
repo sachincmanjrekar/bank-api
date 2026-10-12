@@ -1,0 +1,23 @@
+# Files Docker should NOT copy into the image: smaller, faster builds, no secrets or local junk.
+
+# Local environment and caches
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Local data and secrets
+*.db
+.env
+
+# Not needed to run the app
+.git/
+.github/
+.idea/
+.vscode/
+.mcp.json
+tests/
+requirements-dev.txt
+pytest.ini
+ruff.toml
